@@ -37,17 +37,18 @@ app.get('/setup',function (req,res) {
 });
 
 var apiRoutes = express.Router();
-
+//middleware para corroborar que esta presente el token en todas las peticiones al servidor
 apiRoutes.use(function(req,res,next) {
     //revisamos si el token viene en  el header parametros url o parametro post
     var token = req.body.token || req.query.token || req.headers['x-access-token'] || null;    
     //decodificar el token
+    
     if (token) {
         jwt.verify(token,app.get('superSecret'),function (err,decoded) {
             if (err) {
                 return res.json({
                     success: false,
-                    message: 'no se pudo autenticar el token'
+                    message: 'no se pudo autenticar el token'                    
                 });
             }else{
                 req.decode = decoded;
@@ -55,10 +56,15 @@ apiRoutes.use(function(req,res,next) {
             }
         })
     }else {
-        return res.status(403).send({
+        if(req.url == '/authenticate'){
+            next();
+        }else{
+            return res.status(403).send({
             success: false,
-            message: 'no hay token en la peticion'
-        });
+            message: 'no hay token en la peticion',
+            req : req.url
+        });   
+        }        
     } 
 });
 
@@ -117,7 +123,7 @@ apiRoutes.post('/authenticate',function (req,res) {
                 //se crea el token para el usuario
                 //var token = jwt.sign({usuario:user,acceso:['index','home','usuarios']},app.get('superSecret'),{
                 var token = jwt.sign({user : user},app.get('superSecret'),{
-                    expiresInMinutes: 1440 // solo sera valido por 24 horas
+                    expiresIn: 3600 // solo sera valido por 24 horas
                 });
                 res.json({
                     success: true,
