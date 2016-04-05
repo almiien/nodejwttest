@@ -65,8 +65,28 @@ apiRoutes.get('/', function(req,res) {
 });
 
 apiRoutes.get('/users',function (req,res) {
+    var token = req.body.token || req.query.token || req.headers['x-access-token'] || null;
+    var tokenDecoded;
+    jwt.verify(token,app.get('superSecret'), function (err,decoded) {
+        if (err) {
+            return res.json({
+                    success: false,
+                    message: 'no se pudo autenticar el token'
+                });
+        }else{
+            tokenDecoded = decoded;
+        }
+    })    
     User.find({},function (err,users) {
-        res.json(users);
+        if (tokenDecoded['acceso'].indexOf('usuarios') !== -1 ) {
+            res.json(users);    
+        }else{
+            return res.json({
+                    success: false,
+                    message: 'no tiene acceso a este recurso'
+                });
+        }
+        
     }); 
 });
 
