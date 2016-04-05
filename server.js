@@ -23,9 +23,11 @@ app.get('/', function (req,res) {
 
 app.get('/setup',function (req,res) {
    var mario = new User({
-       name:'Mario Del Moral',
+       name:'xnlsoft',
        password:'123',
-       admin: true
+       acceso: [           
+           'index'
+       ]
    }); 
    mario.save(function(err) {
        if (err) throw err;
@@ -65,8 +67,9 @@ apiRoutes.get('/', function(req,res) {
 });
 
 apiRoutes.get('/users',function (req,res) {
+    var self = this;
     var token = req.body.token || req.query.token || req.headers['x-access-token'] || null;
-    var tokenDecoded;
+    self.tokenDecoded;
     jwt.verify(token,app.get('superSecret'), function (err,decoded) {
         if (err) {
             return res.json({
@@ -74,20 +77,22 @@ apiRoutes.get('/users',function (req,res) {
                     message: 'no se pudo autenticar el token'
                 });
         }else{
-            tokenDecoded = decoded;
+            self.tokenDecoded = decoded;
+            mostrarUsuarios(self.tokenDecoded.user);            
         }
-    })    
-    User.find({},function (err,users) {
-        if (tokenDecoded['acceso'].indexOf('usuarios') !== -1 ) {
-            res.json(users);    
+    });
+    function mostrarUsuarios(user) {
+        if(user.acceso.indexOf('users') !== -1){
+            User.find({},function(err,users){
+                return res.json(users) ;       
+            });
         }else{
             return res.json({
-                    success: false,
-                    message: 'no tiene acceso a este recurso'
-                });
-        }
-        
-    }); 
+                success : false,
+                message : 'no tiene acceso a este recurso'
+            });
+        }            
+    }
 });
 
 apiRoutes.post('/authenticate',function (req,res) {
@@ -110,7 +115,8 @@ apiRoutes.post('/authenticate',function (req,res) {
             }else {
                 //si el usuario existe y el password coincide
                 //se crea el token para el usuario
-                var token = jwt.sign({usuario:user,acceso:['index','home','usuarios']},app.get('superSecret'),{
+                //var token = jwt.sign({usuario:user,acceso:['index','home','usuarios']},app.get('superSecret'),{
+                var token = jwt.sign({user : user},app.get('superSecret'),{
                     expiresInMinutes: 1440 // solo sera valido por 24 horas
                 });
                 res.json({
